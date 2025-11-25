@@ -107,17 +107,36 @@ public class EditEventCommand extends AbstractCommand {
     if (scope.equals("event")) {
       EventKey key = new EventKey(subject, start, end);
       model.editEvent(key, property, newValue);
-      System.out.println("Edited single event: " + subject);
+      System.out.println(
+          "Edited single event: " + subject
+              +
+              " (property = " + property
+              +
+              ", newValue = " + formatValue(newValue) + ")"
+      );
 
     } else if (scope.equals("events")) {
-      EventKey key = new EventKey(subject, start, start.plusMinutes(1));
+      EventKey key = new EventKey(subject, start, null);
       model.editSeries(key, property, newValue, EditMode.FROM_THIS_ONWARD);
-      System.out.println("Edited events from this onward: " + subject);
+      System.out.println(
+          "Edited events from this onward: " + subject
+              +
+              " (property = " + property + ", newValue = "
+              + formatValue(newValue) + ")"
+      );
+
 
     } else if (scope.equals("series")) {
-      EventKey key = new EventKey(subject, start, start.plusMinutes(1));
+      // No end time provided → pass null to indicate “match by subject + start only”
+      EventKey key = new EventKey(subject, start, null);
       model.editSeries(key, property, newValue, EditMode.ENTIRE_SERIES);
-      System.out.println("Edited entire series: " + subject);
+      System.out.println(
+          "Edited entire series: " + subject
+              +
+              " (property = " + property
+              +
+              ", newValue = " + formatValue(newValue) + ")"
+      );
     } else {
       throw new IllegalArgumentException("Invalid scope: " + scope);
     }
@@ -146,4 +165,18 @@ public class EditEventCommand extends AbstractCommand {
       throw new IllegalArgumentException("Invalid date/time format: " + text);
     }
   }
+
+  /**
+   * Formats a newValue for CLI output so that GUI and CLI output look clean.
+   */
+  private String formatValue(Object value) {
+    if (value == null) {
+      return "null";
+    }
+    if (value instanceof ZonedDateTime) {
+      return ((ZonedDateTime) value).toString();
+    }
+    return value.toString();
+  }
+
 }

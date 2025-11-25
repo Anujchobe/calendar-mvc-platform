@@ -147,9 +147,8 @@ public class GuiFeaturesController implements Ifeatures {
       executeCommand(useCmd);
 
       currentCalendarName = name;
-      view.refresh();
     } catch (Exception e) {
-      view.showError("Failed to create calendar: " + e.getMessage());
+      throw new IllegalStateException("Failed to create calendar: " + e.getMessage(), e);
     }
   }
 
@@ -161,9 +160,8 @@ public class GuiFeaturesController implements Ifeatures {
       executeCommand(cmd);
 
       currentCalendarName = calendarName;
-      view.refresh();
     } catch (Exception e) {
-      view.showError("Failed to switch calendar: " + e.getMessage());
+      throw new IllegalStateException("Failed to switch calendar: " + e.getMessage(), e);
     }
   }
 
@@ -192,9 +190,8 @@ public class GuiFeaturesController implements Ifeatures {
 
       // Execute through CLI pipeline
       executeCommand(cmd);
-      view.refresh();
     } catch (Exception e) {
-      view.showError("Failed to create event: " + e.getMessage());
+      throw new IllegalStateException("Failed to create event: " + e.getMessage());
     }
   }
 
@@ -212,9 +209,8 @@ public class GuiFeaturesController implements Ifeatures {
 
       // Execute through CLI pipeline
       executeCommand(cmd);
-      view.refresh();
     } catch (Exception e) {
-      view.showError("Failed to create recurring event: " + e.getMessage());
+      throw new IllegalStateException("Failed to create recurring event: " + e.getMessage(), e);
     }
   }
 
@@ -233,9 +229,8 @@ public class GuiFeaturesController implements Ifeatures {
 
       // Execute through CLI pipeline
       executeCommand(cmd);
-      view.refresh();
     } catch (Exception e) {
-      view.showError("Failed to edit event: " + e.getMessage());
+      throw new IllegalStateException("Failed to edit event: " + e.getMessage(), e);
     }
   }
 
@@ -250,9 +245,8 @@ public class GuiFeaturesController implements Ifeatures {
 
       // Execute through CLI pipeline
       executeCommand(cmd);
-      view.refresh();
     } catch (Exception e) {
-      view.showError("Failed to edit series: " + e.getMessage());
+      throw new IllegalStateException("Failed to edit series: " + e.getMessage(), e);
     }
   }
 
@@ -267,9 +261,8 @@ public class GuiFeaturesController implements Ifeatures {
 
       // Execute through CLI pipeline
       executeCommand(cmd);
-      view.refresh();
     } catch (Exception e) {
-      view.showError("Failed to edit entire series: " + e.getMessage());
+      throw new IllegalStateException("Failed to edit entire series: " + e.getMessage(), e);
     }
   }
 
@@ -284,8 +277,7 @@ public class GuiFeaturesController implements Ifeatures {
       // No need to go through command pipeline for queries
       return manager.getActiveCalendar().queryEventsOn(date);
     } catch (Exception e) {
-      view.showError("Failed to load events: " + e.getMessage());
-      return Collections.emptyList();
+      throw new IllegalStateException("Failed to load events: " + e.getMessage(), e);
     }
   }
 
@@ -302,4 +294,6 @@ public class GuiFeaturesController implements Ifeatures {
   public void selectDate(LocalDate date) {
     // No-op: View calls getEventsOn when needed
   }
+
+
 }

@@ -83,7 +83,14 @@ public class RecurringEventDialog extends AbstractViewDialog {
    */
   private final JSpinner endDateSpinner;
 
+  /**
+   * Tells whether the user confirmed the dialog by pressing Create.
+   */
   private boolean confirmed = false;
+
+  /**
+   * The base date for the first occurrence of the recurring event.
+   */
   private final LocalDate date;
 
   /**

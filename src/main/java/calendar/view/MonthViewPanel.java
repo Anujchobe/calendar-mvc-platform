@@ -22,34 +22,18 @@ import javax.swing.SwingConstants;
  * <ul>
  *     <li>7x7 grid layout (weekday headers + day buttons)</li>
  *     <li>Highlights current date with blue border</li>
- *     <li>Highlights selected date with blue background</li>
+ *     <li>Highlights selected date with black border</li>
  *     <li>Fires date selection events to registered listeners</li>
  *     <li>Handles month transitions gracefully</li>
  * </ul>
  *
- * <p><b>Design Principles:</b></p>
- * <ul>
- *     <li><b>Open/Closed:</b> Can be reused in different views without
- *         modification</li>
- *     <li><b>Observer Pattern:</b> Uses listeners for loose coupling</li>
- *     <li><b>Single Responsibility:</b> Only handles month grid rendering
- *         and date selection</li>
- * </ul>
- *
- * <p><b>Usage Example:</b></p>
- * <pre>{@code
- * MonthViewPanel monthPanel = new MonthViewPanel(YearMonth.now());
- * monthPanel.addDateSelectionListener(date -> {
- *     features.selectDate(date);
- *     loadEventsForDate(date);
- * });
- * }</pre>
  */
 public class MonthViewPanel extends JPanel {
 
   private YearMonth currentMonth;
   private LocalDate selectedDate;
   private LocalDate today = LocalDate.now();
+  private boolean dateListenerAttached = false;
 
   /** List of registered date selection listeners. */
   private final List<DateSelectionListener> listeners = new ArrayList<>();
@@ -97,7 +81,6 @@ public class MonthViewPanel extends JPanel {
   private void initializeGrid() {
     String[] weekdays = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
 
-    // Add weekday header labels
     for (String day : weekdays) {
       JLabel label = new JLabel(day, SwingConstants.CENTER);
       label.setFont(new Font("Arial", Font.BOLD, 12));
@@ -105,7 +88,6 @@ public class MonthViewPanel extends JPanel {
       add(label);
     }
 
-    // Create day buttons
     for (int row = 0; row < 6; row++) {
       for (int col = 0; col < 7; col++) {
         JButton btn = new JButton();
@@ -123,14 +105,6 @@ public class MonthViewPanel extends JPanel {
   /**
    * Renders the current month's days in the grid.
    *
-   * <p>Algorithm:</p>
-   * <ol>
-   *     <li>Calculate offset for first day of month</li>
-   *     <li>Fill empty cells before month starts</li>
-   *     <li>Populate actual days of the month</li>
-   *     <li>Apply visual styling (borders, backgrounds)</li>
-   *     <li>Fill empty cells after month ends</li>
-   * </ol>
    */
   private void renderMonth() {
     LocalDate firstDay = currentMonth.atDay(1);
@@ -143,30 +117,25 @@ public class MonthViewPanel extends JPanel {
         JButton btn = dayButtons[row][col];
 
         if (row == 0 && col < startDayOfWeek) {
-          // Empty cell before month starts
           btn.setText("");
           btn.setEnabled(false);
         } else if (day <= daysInMonth) {
           btn.setText(String.valueOf(day));
           btn.setEnabled(true);
 
-          // Reset styling
           btn.setBackground(Color.WHITE);
           btn.setBorder(BorderFactory.createLineBorder(Color.GRAY));
           LocalDate date = currentMonth.atDay(day);
-          // Highlight today's date
           if (date.equals(today)) {
             btn.setBorder(BorderFactory.createLineBorder(Color.BLUE, 2));
           }
 
-          // Highlight selected date
           if (date.equals(selectedDate)) {
-            btn.setBackground(new Color(180, 220, 255));
+            btn.setBorder(BorderFactory.createLineBorder(Color.BLACK, 3));
           }
 
           day++;
         } else {
-          // Empty cell after month ends
           btn.setText("");
           btn.setEnabled(false);
         }
@@ -235,7 +204,11 @@ public class MonthViewPanel extends JPanel {
    * @param listener callback to invoke when dates are selected
    */
   public void addDateSelectionListener(DateSelectionListener listener) {
+    if (dateListenerAttached) {
+      return;
+    }
     listeners.add(listener);
+    dateListenerAttached = true;
   }
 
   /**

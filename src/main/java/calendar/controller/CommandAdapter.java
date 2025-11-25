@@ -257,4 +257,6 @@ public class CommandAdapter implements IcommandAdapter {
         + "with " + property.toLowerCase() + " "
         + valueStr;
   }
+
+
 }

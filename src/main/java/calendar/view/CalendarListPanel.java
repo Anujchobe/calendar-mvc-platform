@@ -11,78 +11,65 @@ import javax.swing.JScrollPane;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
 
-
-
 /**
- * Reusable panel component for displaying and selecting calendars.
+ * Panel that displays the list of calendars available in the application.
  *
- * <p><b>Responsibilities:</b></p>
- * <ul>
- *     <li>Display list of available calendars</li>
- *     <li>Highlight the currently active calendar</li>
- *     <li>Fire selection change events to registered listeners</li>
- * </ul>
+ * <p>This component is responsible only for showing calendar names and notifying
+ * a registered listener when the user selects one of them. It does not interact
+ * with the model directly, which keeps the design modular and easy to reuse.</p>
  *
- * <p><b>Design Principles:</b></p>
- * <ul>
- *     <li><b>Single Responsibility:</b> Only handles calendar selection UI</li>
- *     <li><b>Reusability:</b> Can be embedded in any view that needs
- *         calendar selection</li>
- *     <li><b>Observer Pattern:</b> Uses listener callback for decoupling</li>
- * </ul>
- *
- * <p><b>Usage Example:</b></p>
- * <pre>{@code
- * CalendarListPanel panel = new CalendarListPanel();
- * panel.setCalendars(List.of("Work", "Personal", "Family"));
- * panel.setSelectionListener(calName -> {
- *     features.useCalendar(calName);
- * });
- * }</pre>
+ * <p>The panel uses a {@link JList} backed by a {@link DefaultListModel}. A
+ * simple callback interface allows the parent view or controller to respond to
+ * user selections.</p>
  */
 public class CalendarListPanel extends JPanel {
 
-  /** List model for managing calendar names. */
+  /**
+   * Backing model for storing and updating the calendar names displayed in the list.
+   */
   private final DefaultListModel<String> listModel = new DefaultListModel<>();
 
-  /** JList component for displaying calendars. */
+  /**
+   * The visible list of calendar names.
+   */
   private final JList<String> calendarList = new JList<>(listModel);
 
-  /** Listener for selection changes. */
+  /**
+   * Listener invoked when the user selects a calendar.
+   */
   private CalendarSelectionListener listener;
 
   /**
-   * Functional interface for calendar selection callbacks.
-   *
-   * <p>Allows parent views to react to calendar selection changes
-   * without tight coupling.</p>
+   * Ensures only one listener is attached at a time.
+   */
+  private boolean listenerAttached = false;
+
+  /**
+   * Functional interface for selection callbacks.
    */
   @FunctionalInterface
   public interface CalendarSelectionListener {
+
     /**
-     * Called when a calendar is selected by the user.
+     * Called when the user selects a calendar from the list.
      *
-     * @param calendarName the name of the selected calendar
+     * @param calendarName the chosen calendar name
      */
     void onCalendarSelected(String calendarName);
   }
 
   /**
-   * Constructs a calendar list panel with default styling.
+   * Creates a new calendar list panel.
    *
-   * <p>Configures:</p>
-   * <ul>
-   *     <li>Preferred width of 200 pixels</li>
-   *     <li>Single selection mode</li>
-   *     <li>Scrollable list</li>
-   *     <li>Title label</li>
-   * </ul>
+   * <p>Sets a fixed width, enables single selection mode, and wraps
+   * the list in a scrollable container. A title is added at the top.</p>
    */
   public CalendarListPanel() {
     setLayout(new BorderLayout());
     setPreferredSize(new Dimension(200, 0));
 
     calendarList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
     calendarList.addListSelectionListener(e -> {
       if (!e.getValueIsAdjusting() && listener != null) {
         String selected = calendarList.getSelectedValue();
@@ -98,50 +85,51 @@ public class CalendarListPanel extends JPanel {
   }
 
   /**
-   * Updates the list of available calendars.
+   * Replaces the existing calendar list with a new set of names.
    *
-   * <p>Clears the existing list and repopulates it with the provided names.
-   * Automatically selects the first calendar if available.</p>
+   * <p>If the new list is not empty, the first calendar is selected.
+   * This may trigger the listener if one is attached.</p>
    *
-   * @param calendars list of calendar names to display
+   * @param calendars the list of calendar names to display
    */
   public void setCalendars(List<String> calendars) {
     listModel.clear();
+
     for (String name : calendars) {
       listModel.addElement(name);
     }
+
     if (!calendars.isEmpty()) {
       calendarList.setSelectedIndex(0);
     }
   }
 
   /**
-   * Sets the active calendar by name.
+   * Programmatically selects a calendar by name.
    *
-   * <p>Programmatically selects the specified calendar in the list.</p>
-   *
-   * @param calendarName name of the calendar to select
+   * @param calendarName the name to highlight
    */
   public void setSelectedCalendar(String calendarName) {
     calendarList.setSelectedValue(calendarName, true);
   }
 
   /**
-   * Registers a listener for selection change events.
+   * Registers the listener to be notified when the user selects a calendar.
    *
-   * <p>The listener will be notified whenever the user selects a
-   * different calendar from the list.</p>
-   *
-   * @param listener callback for selection events
+   * @param listener the callback to attach
    */
   public void setSelectionListener(CalendarSelectionListener listener) {
+    if (listenerAttached) {
+      return;
+    }
     this.listener = listener;
+    listenerAttached = true;
   }
 
   /**
-   * Gets the currently selected calendar name.
+   * Returns the currently selected calendar.
    *
-   * @return selected calendar name, or null if none selected
+   * @return the selected calendar name, or {@code null} if none is selected
    */
   public String getSelectedCalendar() {
     return calendarList.getSelectedValue();

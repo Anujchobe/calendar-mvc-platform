@@ -10,6 +10,7 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Collections;
 import java.util.List;
 import javax.swing.BorderFactory;
 import javax.swing.DefaultListModel;
@@ -41,7 +42,7 @@ public class SwingCalendarView extends JFrame implements Icalendarview {
 
   private static final DateTimeFormatter TIME_FORMAT =
       DateTimeFormatter.ofPattern("HH:mm");
-
+  private boolean dateSelectionListenerAttached = false;
   private MonthViewPanel monthViewPanel;
   private CalendarListPanel calendarListPanel;
   private JLabel monthLabel;
@@ -61,7 +62,7 @@ public class SwingCalendarView extends JFrame implements Icalendarview {
    * Constructs the main application window.
    */
   public SwingCalendarView() {
-    super("Virtual Calendar Application");
+    super("Calendar Application");
     setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     setSize(1100, 700);
     setLayout(new BorderLayout(10, 10));
@@ -88,7 +89,7 @@ public class SwingCalendarView extends JFrame implements Icalendarview {
     createCalendarBtn = new JButton("+ New Calendar");
     createCalendarBtn.addActionListener(e -> openCreateCalendarDialog());
 
-    JLabel title = new JLabel("📅 Virtual Calendar", SwingConstants.CENTER);
+    JLabel title = new JLabel("📅 Calendar", SwingConstants.CENTER);
     title.setFont(new Font("Arial", Font.BOLD, 18));
 
     toolbar.add(createCalendarBtn, BorderLayout.WEST);
@@ -106,7 +107,6 @@ public class SwingCalendarView extends JFrame implements Icalendarview {
     calendarListPanel = new CalendarListPanel();
     calendarListPanel.setSelectionListener(calendarName -> {
       if (features != null) {
-        // FIRE EVENT to controller listener
         features.useCalendar(calendarName);
         refresh();
       }
@@ -126,15 +126,17 @@ public class SwingCalendarView extends JFrame implements Icalendarview {
     center.add(nav, BorderLayout.NORTH);
 
     monthViewPanel = new MonthViewPanel(currentMonth);
-    monthViewPanel.addDateSelectionListener(date -> {
-      selectedDate = date;
+    if (!dateSelectionListenerAttached) {
+      monthViewPanel.addDateSelectionListener(date -> {
+        selectedDate = date;
 
-      if (features != null) {
-        // FIRE correct event to controller listener
-        features.selectDate(date);     // ← NEW
-        loadEventsForSelectedDate();   // refresh event list
-      }
-    });
+        if (features != null) {
+          features.selectDate(date);
+          loadEventsForSelectedDate();
+        }
+      });
+      dateSelectionListenerAttached = true;
+    }
 
     center.add(monthViewPanel, BorderLayout.CENTER);
 
@@ -197,8 +199,6 @@ public class SwingCalendarView extends JFrame implements Icalendarview {
   /**
    * Creates event action button panel.
    *
-   * <p>Note: Delete functionality NOT included as it's not in
-   * assignment requirements (Section 1.2 specifies: create, edit, view)</p>
    */
   private JPanel createEventActionButtons() {
     final JPanel panel = new JPanel(new GridLayout(4, 1, 5, 5));
@@ -259,8 +259,8 @@ public class SwingCalendarView extends JFrame implements Icalendarview {
     selectedDate = today;
 
     if (features != null) {
-      features.navigateToMonth(currentMonth);  // tell controller about month change
-      features.selectDate(today);              // tell controller the day selected
+      features.navigateToMonth(currentMonth);
+      features.selectDate(today);
     }
 
     updateMonthView();
@@ -294,8 +294,15 @@ public class SwingCalendarView extends JFrame implements Icalendarview {
       return;
     }
 
-    currentEvents = features.getEventsOn(selectedDate);  // FIRE EVENT
-    displayEventsInList(currentEvents);
+    try {
+      currentEvents = features.getEventsOn(selectedDate);  // ← May throw
+      displayEventsInList(currentEvents);
+
+    } catch (Exception ex) {
+      showError("Failed to load events: " + ex.getMessage());
+      currentEvents = Collections.emptyList();  // ← Set to empty
+      displayEventsInList(currentEvents);
+    }
   }
 
   /**
@@ -354,7 +361,6 @@ public class SwingCalendarView extends JFrame implements Icalendarview {
 
     if (dialog.isConfirmed() && features != null) {
       try {
-        // FIRE EVENT to controller listener
         features.createSingleEvent(
             dialog.getSubject(),
             dialog.getStart(),
@@ -388,8 +394,6 @@ public class SwingCalendarView extends JFrame implements Icalendarview {
         LocalDate endDate = !dialog.useOccurrences()
             ?
             dialog.getEndDate() : null;
-
-        // FIRE EVENT to controller listener
         features.createRecurringEvent(
             dialog.getSubject(),
             dialog.getStart(),
@@ -423,9 +427,7 @@ public class SwingCalendarView extends JFrame implements Icalendarview {
    */
   private void openEditEventDialog() {
     int selectedIndex = eventList.getSelectedIndex();
-    if (selectedIndex < 0 || currentEvents == null
-        ||
-        currentEvents.isEmpty()) {
+    if (selectedIndex < 0 || currentEvents == null || currentEvents.isEmpty()) {
       showError("Please select an event to edit");
       return;
     }
@@ -436,36 +438,41 @@ public class SwingCalendarView extends JFrame implements Icalendarview {
 
     if (dialog.isConfirmed() && features != null) {
       try {
-        if (dialog.isEditMultiple()) {
-          // Batch edit mode
-          if (dialog.isFromDateEnabled()) {
-            // FIRE EVENT: Edit series from date onward
-            editSeriesProperties(
+        EditEventDialog.EditMode mode = dialog.getEditMode();
+
+        switch (mode) {
+          case SINGLE:
+            editSingleEventProperties(
                 selectedEvent.getSubject(),
                 selectedEvent.getStart(),
                 selectedEvent.getEnd(),
-                dialog,
-                true
+                dialog
             );
-          } else {
-            // FIRE EVENT: Edit entire series
-            editSeriesProperties(
+            break;
+
+          case FROM_THIS_ONWARD:
+            editSeriesFromThisOnwardProperties(
                 selectedEvent.getSubject(),
                 selectedEvent.getStart(),
                 selectedEvent.getEnd(),
-                dialog,
-                false
+                dialog
             );
-          }
-        } else {
-          // FIRE EVENT: Edit single event
-          editSingleEventProperties(
-              selectedEvent.getSubject(),
-              selectedEvent.getStart(),
-              selectedEvent.getEnd(),
-              dialog
-          );
+            break;
+
+          case ENTIRE_SERIES:
+            editEntireSeriesProperties(
+                selectedEvent.getSubject(),
+                selectedEvent.getStart(),
+                selectedEvent.getEnd(),
+                dialog
+            );
+            break;
+          default:
+            System.err.println("EditEventDialog returned an unknown EditMode: " + mode);
+            showError("Unknown edit mode selected.");
+            return;
         }
+
         loadEventsForSelectedDate();
         showSuccess("Event updated successfully");
       } catch (Exception ex) {
@@ -474,98 +481,112 @@ public class SwingCalendarView extends JFrame implements Icalendarview {
     }
   }
 
+
   /**
    * Helper method to fire single event edit to controller.
    *
    * <p>FIRES multiple property updates to controller listener.</p>
+   *
    */
+
   private void editSingleEventProperties(String originalSubject,
                                          ZonedDateTime originalStart,
                                          ZonedDateTime originalEnd,
                                          EditEventDialog dialog) {
-    // Update subject
     features.editSingleEvent(originalSubject, originalStart, originalEnd,
         "subject", dialog.getSubject());
 
-    // Update other properties using new subject
-    features.editSingleEvent(dialog.getSubject(), originalStart, originalEnd,
-        "location", dialog.getLocation());
-    features.editSingleEvent(dialog.getSubject(), originalStart, originalEnd,
+    String newSubject = dialog.getSubject();
+    features.editSingleEvent(newSubject, originalStart, originalEnd,
+        "location", dialog.getEventLocation());
+    features.editSingleEvent(newSubject, originalStart, originalEnd,
         "description", dialog.getDescription());
-    features.editSingleEvent(dialog.getSubject(), originalStart, originalEnd,
+    features.editSingleEvent(newSubject, originalStart, originalEnd,
         "start", dialog.getStart());
-    features.editSingleEvent(dialog.getSubject(), dialog.getStart(), originalEnd,
+
+    ZonedDateTime newStart = dialog.getStart();
+    features.editSingleEvent(newSubject, newStart, originalEnd,
         "end", dialog.getEnd());
-    features.editSingleEvent(dialog.getSubject(), dialog.getStart(), dialog.getEnd(),
+
+    ZonedDateTime newEnd = dialog.getEnd();
+    features.editSingleEvent(newSubject, newStart, newEnd,
         "status", dialog.getStatus().name());
   }
 
+
+
   /**
-   * Helper method to fire series edit to controller.
+   * Helper method to edit series from this event onward.
    *
-   * <p>FIRES multiple property updates to controller listener.</p>
-   *
-   * @param fromThisOnward true for FROM_THIS_ONWARD, false for ENTIRE_SERIES
+   * <p>Fires property updates for this event and all future occurrences.</p>
    */
-  private void editSeriesProperties(String originalSubject,
-                                    ZonedDateTime originalStart,
-                                    ZonedDateTime originalEnd,
-                                    EditEventDialog dialog,
-                                    boolean fromThisOnward) {
+  private void editSeriesFromThisOnwardProperties(String originalSubject,
+                                                  ZonedDateTime originalStart,
+                                                  ZonedDateTime originalEnd,
+                                                  EditEventDialog dialog) {
     String newSubject = dialog.getSubject();
     String newLocation = dialog.getEventLocation();
     String newDescription = dialog.getDescription();
     String newStatus = dialog.getStatus().name();
 
-    if (fromThisOnward) {
-      // EDIT SERIES: FROM THIS ONWARD
-      features.editSeriesFromThisOnward(
-          originalSubject, originalStart, originalEnd,
-          "subject", newSubject
-      );
+    features.editSeriesFromThisOnward(
+        originalSubject, originalStart, originalEnd,
+        "subject", newSubject
+    );
 
-      // Use new subject for subsequent edits
-      features.editSeriesFromThisOnward(
-          newSubject, originalStart, originalEnd,
-          "location", newLocation
-      );
+    features.editSeriesFromThisOnward(
+        newSubject, originalStart, originalEnd,
+        "location", newLocation
+    );
 
-      features.editSeriesFromThisOnward(
-          newSubject, originalStart, originalEnd,
-          "description", newDescription
-      );
+    features.editSeriesFromThisOnward(
+        newSubject, originalStart, originalEnd,
+        "description", newDescription
+    );
 
-      features.editSeriesFromThisOnward(
-          newSubject, originalStart, originalEnd,
-          "status", newStatus
-      );
-
-    } else {
-      // EDIT ENTIRE SERIES
-      features.editEntireSeries(
-          originalSubject, originalStart, originalEnd,
-          "subject", newSubject
-      );
-
-      features.editEntireSeries(
-          newSubject, originalStart, originalEnd,
-          "location", newLocation
-      );
-
-      features.editEntireSeries(
-          newSubject, originalStart, originalEnd,
-          "description", newDescription
-      );
-
-      features.editEntireSeries(
-          newSubject, originalStart, originalEnd,
-          "status", newStatus
-      );
-    }
+    features.editSeriesFromThisOnward(
+        newSubject, originalStart, originalEnd,
+        "status", newStatus
+    );
   }
 
   /**
-   * Opens view events dialog (read-only).
+   * Helper method to edit entire series.
+   *
+   * <p>Fires property updates for all events with the same subject.</p>
+   */
+  private void editEntireSeriesProperties(String originalSubject,
+                                          ZonedDateTime originalStart,
+                                          ZonedDateTime originalEnd,
+                                          EditEventDialog dialog) {
+    String newSubject = dialog.getSubject();
+    String newLocation = dialog.getEventLocation();
+    String newDescription = dialog.getDescription();
+    String newStatus = dialog.getStatus().name();
+
+    features.editEntireSeries(
+        originalSubject, originalStart, originalEnd,
+        "subject", newSubject
+    );
+
+    features.editEntireSeries(
+        newSubject, originalStart, originalEnd,
+        "location", newLocation
+    );
+
+    features.editEntireSeries(
+        newSubject, originalStart, originalEnd,
+        "description", newDescription
+    );
+
+    features.editEntireSeries(
+        newSubject, originalStart, originalEnd,
+        "status", newStatus
+    );
+  }
+
+  /**
+   * Opens view events dialog.
    */
   private void openViewEventsDialog() {
     if (features == null) {
@@ -612,17 +633,13 @@ public class SwingCalendarView extends JFrame implements Icalendarview {
   /**
    * Registers controller as listener for all view events.
    *
-   * <p>This is the Observer pattern registration:
-   * <ul>
-   *     <li>View is the Subject (fires events)</li>
-   *     <li>Controller is the Observer (listens)</li>
-   *     <li>This method performs the registration</li>
-   * </ul>
-   *
    * @param features controller interface that will listen to all events
    */
   @Override
   public void setFeatures(Ifeatures features) {
+    if (this.features != null) {
+      return; // prevent duplicate controller registration
+    }
     this.features = features;  // Register controller as listener
     refreshCalendarList();
     loadEventsForSelectedDate();

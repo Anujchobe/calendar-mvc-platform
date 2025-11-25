@@ -23,6 +23,21 @@ public class MockFeaturesController implements Ifeatures {
   private final List<String> calendars = new ArrayList<>();
   private String activeCalendar = "Default";
 
+  // For atomic edits:
+  public String atomicOriginalSubject;
+  public ZonedDateTime atomicOriginalStart;
+  public ZonedDateTime atomicOriginalEnd;
+
+  public String atomicNewSubject;
+  public ZonedDateTime atomicNewStart;
+  public ZonedDateTime atomicNewEnd;
+  public String atomicNewLocation;
+  public String atomicNewDescription;
+  public String atomicNewStatus;
+
+  // Last requested date
+  public LocalDate lastQueriedDate;
+
   /**
    * Constructs a mock controller with a default calendar already created.
    */
@@ -120,4 +135,5 @@ public class MockFeaturesController implements Ifeatures {
   public void selectDate(LocalDate date) {
     System.out.println("[MOCK] selectDate -> " + date);
   }
+
 }

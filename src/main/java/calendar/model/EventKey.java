@@ -27,8 +27,8 @@ public final class EventKey {
     if (subject == null || subject.isBlank()) {
       throw new IllegalArgumentException("EventKey subject cannot be null or blank");
     }
-    if (start == null || end == null) {
-      throw new IllegalArgumentException("EventKey times cannot be null");
+    if (start == null) {
+      throw new IllegalArgumentException("EventKey start time cannot be null");
     }
 
     this.subject = subject;

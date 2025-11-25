@@ -76,11 +76,12 @@ public final class RecurrenceRule {
       if (occurrences != null && count >= occurrences) {
         break;
       }
+      date = date.plusDays(1);
       if (until != null && date.isAfter(until)) {
         break;
       }
 
-      date = date.plusDays(1);
+
     }
 
     return result;

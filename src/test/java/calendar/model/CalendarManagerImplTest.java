@@ -18,7 +18,7 @@ import org.junit.Test;
 /**
  * Comprehensive test suite for {@link CalendarManagerImpl}.
  *
- * <p>Ensures correctness, robustness, and full JaCoCo coverage by testing
+ * <p>Ensures correctness, robustness,by testing
  * calendar creation, editing, switching, and retrieval operations under
  * multiple valid and invalid scenarios.</p>
  */

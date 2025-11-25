@@ -111,4 +111,6 @@ public interface IcommandAdapter {
    */
   String buildEditEntireSeriesCommand(String subject, ZonedDateTime start,
                                       ZonedDateTime end, String property, Object newValue);
+
+
 }

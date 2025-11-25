@@ -17,7 +17,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * Comprehensive test suite for TreeSetEventStorage to achieve 100% code coverage.
+ * Comprehensive test suite for TreeSetEventStorage.
  *
  * <p>This test class validates all functionality of the TreeSetEventStorage class,
  * including adding events, removing events, querying events by date and time range,

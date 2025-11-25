@@ -9,13 +9,14 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Date;
 import javax.swing.BorderFactory;
+import javax.swing.ButtonGroup;
 import javax.swing.JButton;
-import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
 import javax.swing.JTextArea;
@@ -28,25 +29,21 @@ import javax.swing.SpinnerDateModel;
  * <p><b>Features:</b></p>
  * <ul>
  *     <li>Pre-populates fields with current event data</li>
- *     <li>Supports single event editing</li>
- *     <li>Supports batch editing (all events with same subject)</li>
- *     <li>Optional date filter for batch edits ("from this date onward")</li>
+ *     <li>Three mutually exclusive edit modes using radio buttons</li>
+ *     <li>Clear visual distinction between edit scopes</li>
  * </ul>
  *
- * <p><b>Edit Modes:</b></p>
+ * <p><b>Edit Modes (Mutually Exclusive):</b></p>
  * <ul>
- *     <li><b>Single:</b> Edit only the selected event instance</li>
- *     <li><b>Multiple (all):</b> Edit all events with the same subject</li>
- *     <li><b>Multiple (from date):</b> Edit events with same subject
- *         starting from a specific date</li>
+ *     <li><b>Single Event:</b> Edit only the selected event instance</li>
+ *     <li><b>From This Onward:</b> Edit this event and all future occurrences</li>
+ *     <li><b>Entire Series:</b> Edit all events with the same subject</li>
  * </ul>
  *
  * <p><b>MVC Compliance:</b></p>
  * <ul>
  *     <li>Only collects user input - no model manipulation</li>
- *     <li>Parent view interprets edit mode and calls appropriate
- *         controller methods</li>
- *     <li>No business logic - pure data collection</li>
+ *     <li>Parent view interprets edit mode and calls appropriate controller methods</li>
  * </ul>
  */
 public class EditEventDialog extends AbstractViewDialog {
@@ -61,21 +58,22 @@ public class EditEventDialog extends AbstractViewDialog {
   private final JSpinner endSpinner;
 
   /**
-   * Checkbox to enable editing multiple events with same subject.
+   * Radio button for editing only this single event.
    */
-  private final JCheckBox editMultipleCheckbox =
-      new JCheckBox("Edit all events with this subject");
+  private final JRadioButton editSingleRadio =
+      new JRadioButton("Edit only this event", true);
 
   /**
-   * Checkbox to enable date filtering for batch edits.
+   * Radio button for editing from this event onward.
    */
-  private final JCheckBox fromDateCheckbox =
-      new JCheckBox("Only from date:");
+  private final JRadioButton editFromThisOnwardRadio =
+      new JRadioButton("Edit this event and all future occurrences");
 
   /**
-   * Date spinner for "from date" filtering.
+   * Radio button for editing entire series.
    */
-  private final JSpinner fromDateSpinner;
+  private final JRadioButton editEntireSeriesRadio =
+      new JRadioButton("Edit all events with this subject");
 
   private boolean confirmed = false;
   private final Event originalEvent;
@@ -83,7 +81,8 @@ public class EditEventDialog extends AbstractViewDialog {
   /**
    * Constructs an edit dialog pre-populated with existing event data.
    *
-   * <p>All form fields are initialized with the event's current values.</p>
+   * <p>All form fields are initialized with the event's current values.
+   * Edit mode defaults to "single event" for safety.</p>
    *
    * @param parent parent frame
    * @param event  the event to edit (used for pre-population and identification)
@@ -92,28 +91,20 @@ public class EditEventDialog extends AbstractViewDialog {
     super(parent, "Edit Event");
     this.originalEvent = event;
 
-    setSize(480, 500);
+    setSize(500, 550);
     setLocationRelativeTo(parent);
     setLayout(new BorderLayout(10, 10));
 
-    // Initialize spinners
     startSpinner = new JSpinner(new SpinnerDateModel());
     endSpinner = new JSpinner(new SpinnerDateModel());
-    fromDateSpinner = new JSpinner(new SpinnerDateModel());
 
     startSpinner.setEditor(new JSpinner.DateEditor(startSpinner, "HH:mm"));
     endSpinner.setEditor(new JSpinner.DateEditor(endSpinner, "HH:mm"));
-    fromDateSpinner.setEditor(
-        new JSpinner.DateEditor(fromDateSpinner, "yyyy-MM-dd"));
 
     populateFieldsFromEvent(event);
     initFormPanel();
+    initEditModePanel();
     initButtonPanel();
-
-    // Disable from-date spinner initially
-    fromDateSpinner.setEnabled(false);
-    fromDateCheckbox.addActionListener(e ->
-        fromDateSpinner.setEnabled(fromDateCheckbox.isSelected()));
   }
 
   /**
@@ -132,17 +123,14 @@ public class EditEventDialog extends AbstractViewDialog {
 
     startSpinner.setValue(Date.from(event.getStart().toInstant()));
     endSpinner.setValue(Date.from(event.getEnd().toInstant()));
-    fromDateSpinner.setValue(Date.from(
-        event.getStart().toLocalDate()
-            .atStartOfDay(event.getStart().getZone()).toInstant()));
   }
 
   /**
-   * Builds the form layout with all input fields and edit mode options.
+   * Builds the form layout with all event property input fields.
    */
   private void initFormPanel() {
-    JPanel form = new JPanel(new GridLayout(8, 2, 8, 8));
-    form.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+    JPanel form = new JPanel(new GridLayout(6, 2, 8, 8));
+    form.setBorder(BorderFactory.createTitledBorder("Event Details"));
 
     form.add(new JLabel("Subject:"));
     form.add(subjectField);
@@ -162,20 +150,46 @@ public class EditEventDialog extends AbstractViewDialog {
     form.add(new JLabel("End Time:"));
     form.add(endSpinner);
 
-    form.add(new JLabel(""));
-    form.add(editMultipleCheckbox);
+    add(form, BorderLayout.NORTH);
+  }
 
-    form.add(fromDateCheckbox);
-    form.add(fromDateSpinner);
+  /**
+   * Creates the edit mode selection panel with mutually exclusive radio buttons.
+   *
+   * <p>Uses ButtonGroup to ensure only one edit mode can be selected at a time.
+   * This prevents ambiguous edit operations and provides clear user intent.</p>
+   */
+  private void initEditModePanel() {
+    JPanel modePanel = new JPanel(new GridLayout(3, 1, 5, 5));
+    modePanel.setBorder(BorderFactory.createTitledBorder("Edit Scope"));
 
-    add(form, BorderLayout.CENTER);
+    ButtonGroup editModeGroup = new ButtonGroup();
+    editModeGroup.add(editSingleRadio);
+    editModeGroup.add(editFromThisOnwardRadio);
+    editModeGroup.add(editEntireSeriesRadio);
+
+    modePanel.add(editSingleRadio);
+    modePanel.add(editFromThisOnwardRadio);
+    modePanel.add(editEntireSeriesRadio);
+
+    if (originalEvent.getSeriesId() == null || originalEvent.getSeriesId().isBlank()) {
+      editFromThisOnwardRadio.setEnabled(false);
+      editEntireSeriesRadio.setEnabled(false);
+      editSingleRadio.setSelected(true);
+
+      JLabel infoLabel = new JLabel("(This is not a recurring event)");
+      infoLabel.setFont(infoLabel.getFont().deriveFont(10f));
+      modePanel.add(infoLabel);
+    }
+
+    add(modePanel, BorderLayout.CENTER);
   }
 
   /**
    * Creates the Save and Cancel buttons.
    */
   private void initButtonPanel() {
-    JButton save = new JButton("Save");
+    JButton save = new JButton("Save Changes");
     JButton cancel = new JButton("Cancel");
 
     JPanel panel = new JPanel();
@@ -211,24 +225,13 @@ public class EditEventDialog extends AbstractViewDialog {
     return true;
   }
 
-
+  /**
+   * Returns whether the user confirmed the edit.
+   *
+   * @return true if "Save Changes" was clicked
+   */
   public boolean isConfirmed() {
     return confirmed;
-  }
-
-  /**
-   * Returns the original event's unique identifier.
-   *
-   * <p>Used by the controller to identify which event to update.</p>
-   *
-   * @return event ID (subject + start + end as key)
-   */
-  public String getEventId() {
-    return originalEvent.getSubject() + "|"
-        +
-        originalEvent.getStart() + "|"
-        +
-        originalEvent.getEnd();
   }
 
   /**
@@ -240,14 +243,29 @@ public class EditEventDialog extends AbstractViewDialog {
     return originalEvent;
   }
 
+  /**
+   * Returns the edited subject.
+   *
+   * @return trimmed subject string
+   */
   public String getSubject() {
     return subjectField.getText().trim();
   }
 
+  /**
+   * Returns the edited location.
+   *
+   * @return trimmed location string
+   */
   public String getEventLocation() {
     return locationField.getText().trim();
   }
 
+  /**
+   * Returns the edited description.
+   *
+   * @return trimmed description string
+   */
   public String getDescription() {
     return descriptionArea.getText().trim();
   }
@@ -255,7 +273,7 @@ public class EditEventDialog extends AbstractViewDialog {
   /**
    * Returns the edited start time.
    *
-   * <p>Preserves the original date and timezone, only updates the time.</p>
+   * <p>Preserves the original date and timezone, only updates the time component.</p>
    *
    * @return updated start time
    */
@@ -269,7 +287,7 @@ public class EditEventDialog extends AbstractViewDialog {
   /**
    * Returns the edited end time.
    *
-   * <p>Preserves the original date and timezone, only updates the time.</p>
+   * <p>Preserves the original date and timezone, only updates the time component.</p>
    *
    * @return updated end time
    */
@@ -280,37 +298,65 @@ public class EditEventDialog extends AbstractViewDialog {
         .with(originalEvent.getEnd().toLocalDate());
   }
 
+  /**
+   * Returns the selected event status.
+   *
+   * @return PUBLIC or PRIVATE
+   */
   public EventStatus getStatus() {
     return (EventStatus) statusCombo.getSelectedItem();
   }
 
   /**
-   * Returns whether the user wants to edit multiple events.
+   * Returns whether user selected "Edit only this event" mode.
    *
-   * @return true if "Edit all events with this subject" is checked
+   * @return true if single event edit mode is selected
    */
-  public boolean isEditMultiple() {
-    return editMultipleCheckbox.isSelected();
+  public boolean isEditSingle() {
+    return editSingleRadio.isSelected();
   }
 
   /**
-   * Returns whether the date filter is enabled for batch edits.
+   * Returns whether user selected "Edit from this onward" mode.
    *
-   * @return true if "Only from date" checkbox is checked
+   * @return true if from-this-onward mode is selected
    */
-  public boolean isFromDateEnabled() {
-    return fromDateCheckbox.isSelected();
+  public boolean isEditFromThisOnward() {
+    return editFromThisOnwardRadio.isSelected();
   }
 
   /**
-   * Returns the "from date" filter value.
+   * Returns whether user selected "Edit entire series" mode.
    *
-   * @return date from which to start batch editing
+   * @return true if entire series mode is selected
    */
-  public LocalDate getFromDate() {
-    Date d = (Date) fromDateSpinner.getValue();
-    return d.toInstant()
-        .atZone(ZoneId.systemDefault())
-        .toLocalDate();
+  public boolean isEditEntireSeries() {
+    return editEntireSeriesRadio.isSelected();
+  }
+
+  /**
+   * Returns the edit mode as an enum for cleaner code in parent view.
+   *
+   * @return the selected edit mode
+   */
+  public EditMode getEditMode() {
+    if (editSingleRadio.isSelected()) {
+      return EditMode.SINGLE;
+    } else if (editFromThisOnwardRadio.isSelected()) {
+      return EditMode.FROM_THIS_ONWARD;
+    } else if (editEntireSeriesRadio.isSelected()) {
+      return EditMode.ENTIRE_SERIES;
+    }
+    return EditMode.SINGLE; // Default fallback
+  }
+
+  /**
+   * Enum representing the three edit modes.
+   * This makes code in SwingCalendarView cleaner.
+   */
+  public enum EditMode {
+    SINGLE,
+    FROM_THIS_ONWARD,
+    ENTIRE_SERIES
   }
 }

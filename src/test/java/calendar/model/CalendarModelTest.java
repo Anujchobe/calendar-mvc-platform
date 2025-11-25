@@ -766,18 +766,20 @@ public class CalendarModelTest {
    * throws an IllegalArgumentException.
    */
   @Test
-  public void testEventKeyNullTimesThrowsException() {
+  public void testEventKeyNullTimesBehavior() {
     ZonedDateTime start = ZonedDateTime.now();
 
-    // Null start
+    // Null start SHOULD still throw (invalid)
     assertThrows(IllegalArgumentException.class, () -> {
       new EventKey("Meeting", null, start.plusHours(1));
     });
 
-    // Null end
-    assertThrows(IllegalArgumentException.class, () -> {
+    // Null end SHOULD NOT throw (valid wildcard for series lookup)
+    try {
       new EventKey("Meeting", start, null);
-    });
+    } catch (Exception e) {
+      fail("Expected no exception when end time is null, but got: " + e);
+    }
   }
 
   /**
