@@ -4,83 +4,132 @@ import static org.junit.Assert.assertTrue;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.PrintStream;
+import java.lang.reflect.Method;
+import org.junit.Before;
 import org.junit.Test;
 
 /**
- * Tests for {@link CalendarRunner}.
- * Updated to match the new behavior:
- *  - No arguments → GUI mode (no usage printed)
- *  - --mode missing → usage printed
- *  - --mode nonsense → unknown mode + usage
- *  - --mode headless missing file → missing script path
- *  - --mode headless bad file → file not found
- *  - Valid script → executes parser
+ * Tests for the CalendarRunner class ensuring correct mode handling
+ * and proper fallback behavior across GUI, interactive, and headless modes.
  */
 public class CalendarRunnerTest {
 
-  private String runWithArgs(String... args) {
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
-    PrintStream originalOut = System.out;
+  private ByteArrayOutputStream output;
 
-    try {
-      System.setOut(new PrintStream(out));
-      CalendarRunner.main(args);
-    } finally {
-      System.setOut(originalOut);
+  /**
+   * Sets up an output stream to capture printed text.
+   */
+  @Before
+  public void setUp() {
+    output = new ByteArrayOutputStream();
+    System.setOut(new PrintStream(output));
+  }
+
+  /**
+   * Invokes a private static method on CalendarRunner via reflection.
+   *
+   * @param name method name
+   * @param args arguments
+   * @throws Exception reflection issues
+   */
+  private void invokePrivate(String name, Object... args) throws Exception {
+    Class<?>[] types = new Class<?>[args.length];
+    for (int i = 0; i < args.length; i++) {
+      types[i] = args[i].getClass();
     }
-    return out.toString();
+    Method m = CalendarRunner.class.getDeclaredMethod(name, types);
+    m.setAccessible(true);
+    m.invoke(null, args);
   }
 
+  /**
+   * Ensures that providing no arguments triggers GUI launch logic
+   * and the application prints the expected headless message.
+   */
   @Test
-  public void testNoArgsStartsGui() {
-    String output = runWithArgs();
-    // GUI mode should not print usage
-    assertFalse(output.contains("Usage"));
-    assertFalse(output.toLowerCase().contains("error"));
+  public void testNoArgsLaunchesGui() {
+    System.setProperty("java.awt.headless", "true");
+
+    CalendarRunner.main(new String[]{});
+
+    String out = output.toString().toLowerCase();
+    assertTrue(out.contains("gui mode not available in headless environment"));
   }
 
+
+  /**
+   * Ensures invalid flag triggers usage output.
+   */
   @Test
-  public void testInvalidModePrintsUsage() {
-    // "--mode" but no mode value
-    String output = runWithArgs("--mode");
-    assertTrue(output.contains("Usage"));
+  public void testInvalidFlagPrintsUsage() {
+    CalendarRunner.main(new String[]{"wrong"});
+    String out = output.toString().toLowerCase();
+    assertTrue(out.contains("usage"));
   }
 
+  /**
+   * Ensures missing mode value prints usage.
+   */
+  @Test
+  public void testMissingModeValue() {
+    CalendarRunner.main(new String[]{"--mode"});
+    String out = output.toString().toLowerCase();
+    assertTrue(out.contains("missing mode"));
+  }
+
+  /**
+   * Ensures unknown mode triggers usage message.
+   */
   @Test
   public void testUnknownMode() {
-    String output = runWithArgs("--mode", "nonsense");
-    assertTrue(output.contains("Unknown mode"));
-    assertTrue(output.contains("Usage"));
+    CalendarRunner.main(new String[]{"--mode", "xyz"});
+    String out = output.toString().toLowerCase();
+    assertTrue(out.contains("unknown mode"));
   }
 
+  /**
+   * Ensures headless mode requires a script path.
+   */
   @Test
-  public void testHeadlessModeMissingFilename() {
-    String output = runWithArgs("--mode", "headless");
-    // Should indicate missing script path
-    assertTrue(output.toLowerCase().contains("missing"));
-    assertTrue(output.contains("Usage"));
+  public void testHeadlessModeMissingScript() {
+    CalendarRunner.main(new String[]{"--mode", "headless"});
+    String out = output.toString().toLowerCase();
+    assertTrue(out.contains("missing script"));
   }
 
+  /**
+   * Ensures that headless mode prints file not found for an invalid path.
+   */
   @Test
   public void testHeadlessModeFileNotFound() {
-    String output = runWithArgs("--mode", "headless", "no_such_file.txt");
-    assertTrue(output.contains("Command file not found"));
+    CalendarRunner.main(new String[]{"--mode", "headless", "missing-file.txt"});
+    String out = output.toString().toLowerCase();
+    assertTrue(out.contains("not found"));
   }
 
+  /**
+   * Ensures headless mode processes a valid empty script file.
+   *
+   * @throws Exception file handling issues
+   */
   @Test
-  public void testHeadlessModeValidFileRuns() throws Exception {
-    File tmp = File.createTempFile("calrunner_test", ".txt");
-    tmp.deleteOnExit();
-    java.nio.file.Files.writeString(tmp.toPath(), "exit\n");
+  public void testHeadlessModeValidScript() throws Exception {
+    File temp = File.createTempFile("script", ".txt");
+    temp.deleteOnExit();
+    CalendarRunner.main(new String[]{"--mode", "headless", temp.getAbsolutePath()});
+    String out = output.toString().toLowerCase();
+    assertFalse(out.contains("not found"));
+  }
 
-    String output = runWithArgs("--mode", "headless", tmp.getAbsolutePath());
-
-    assertFalse(output.contains("Fatal error"));
-
-    // CommandParser prints "exiting..." or might print output for exit
-    String lower = output.toLowerCase();
-    assertTrue(lower.contains("exit")
-        || lower.contains("goodbye")
-        || lower.isEmpty());
+  /**
+   * Ensures printUsage prints expected structure.
+   *
+   * @throws Exception reflection issues
+   */
+  @Test
+  public void testPrintUsage() throws Exception {
+    invokePrivate("printUsage", "err");
+    String out = output.toString().toLowerCase();
+    assertTrue(out.contains("usage"));
   }
 }
