@@ -34,13 +34,13 @@ public class CalendarRunner {
    */
   public static void main(String[] args) {
 
-    // ---------- 1. No args => GUI ----------
+
     if (args.length == 0) {
       launchGui();
       return;
     }
 
-    // ---------- 2. Must start with --mode ----------
+
     if (!"--mode".equalsIgnoreCase(args[0])) {
       printUsage("Missing or invalid --mode flag.");
       return;
@@ -92,7 +92,7 @@ public class CalendarRunner {
    */
   private static void launchGui() {
 
-    // IMPORTANT: Prevent Swing from being created in headless environments (JUnit)
+
     if (java.awt.GraphicsEnvironment.isHeadless()) {
       System.out.println("GUI mode not available in headless environment.");
       return;
@@ -101,7 +101,7 @@ public class CalendarRunner {
     IcalendarManager manager = new CalendarManagerImpl();
     IcommandAdapter adapter = new CommandAdapter();
 
-    // This must NOT run in headless mode.
+
     Icalendarview view = new SwingCalendarView();
 
     new GuiFeaturesController(manager, adapter, view);

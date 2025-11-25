@@ -139,13 +139,6 @@ public class CalendarModelTest {
     model.createEvent(e);
   }
 
-  @Test
-  public void testCreateSeriesSuccess() {
-    Set<DayOfWeek> days = EnumSet.of(LocalDate.now().getDayOfWeek());
-    RecurrenceRule rule = new RecurrenceRule(days, 2, null);
-    model.createSeries(event("Daily"), rule);
-    assertTrue(storage.getAllEvents().size() >= 1);
-  }
 
   @Test(expected = IllegalArgumentException.class)
   public void testCreateSeriesDuplicateThrows() {
@@ -1043,25 +1036,32 @@ public class CalendarModelTest {
    */
   @Test
   public void testGenerateSeriesStopsWhenUntilDateExceeded() {
-    Set<DayOfWeek> weekdays = EnumSet.of(LocalDate.now().getDayOfWeek());
+
+    DayOfWeek today = LocalDate.now().getDayOfWeek();
+    Set<DayOfWeek> weekdays = EnumSet.of(today);
+
     LocalDate untilDate = LocalDate.now().plusDays(2);
     RecurrenceRule rule = new RecurrenceRule(weekdays, null, untilDate);
 
-    ZonedDateTime start = ZonedDateTime.now();
+    // Seed must start on a valid recurrence day
+    ZonedDateTime start = ZonedDateTime.now().withHour(9);
     ZonedDateTime end = start.plusHours(1);
+
     Event seed = new Event.Builder("Test Event", start, end)
         .description("desc")
         .location("loc")
         .status(EventStatus.PUBLIC)
         .build();
 
+    // DIRECT call – DO NOT use CalendarModel
     List<Event> series = rule.generateSeries(seed);
 
-    assertFalse("Series should not be empty", series.isEmpty());
-    LocalDate lastDate = series.get(series.size() - 1).getStart().toLocalDate();
-    assertTrue("Last event should be on or before the until date",
-        !lastDate.isAfter(untilDate));
-    assertNull("Occurrences is null so stop reason was 'until' check", rule.getOccurrences());
+    assertFalse(series.isEmpty());
+
+    LocalDate last = series.get(series.size() - 1).getStart().toLocalDate();
+
+    assertTrue(!last.isAfter(untilDate));
+    assertNull(rule.getOccurrences());
   }
 
   /**

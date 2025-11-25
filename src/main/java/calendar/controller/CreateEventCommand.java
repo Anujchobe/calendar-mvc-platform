@@ -23,9 +23,9 @@ import java.util.Set;
  *
  * <p>Supports input forms:
  * <ul>
- *   <li>{@code create event "Meeting" from 2025-11-08T09:00 to 2025-11-08T10:00}</li>
- *   <li>{@code create event "Yoga" on 2025-11-08 repeats MTWRF for 5}</li>
- *   <li>Optionally add: {@code description "Weekly sync" location "Zoom" status PUBLIC}</li>
+ * <li>{@code create event "Meeting" from 2025-11-08T09:00 to 2025-11-08T10:00}</li>
+ * <li>{@code create event "Yoga" on 2025-11-08 repeats MTWRF for 5}</li>
+ * <li>Optionally add: {@code description "Weekly sync" location "Zoom" status PUBLIC}</li>
  * </ul>
  *
  * <p>All date/time input is assumed to be in Eastern Time.</p>
@@ -90,8 +90,8 @@ public class CreateEventCommand extends AbstractCommand {
     int fromIndex = tokens.indexOf("from");
     int toIndex = tokens.indexOf("to");
 
-    if (fromIndex < 0 || toIndex <= fromIndex + 1) {
-      throw new IllegalArgumentException("Missing 'from/to' arguments.");
+    if (fromIndex < 0 || toIndex <= fromIndex + 1 || toIndex + 1 >= tokens.size()) {
+      throw new IllegalArgumentException("Missing 'from/to' arguments or end time.");
     }
 
     ZonedDateTime start = safeParseDateTime(tokens.get(fromIndex + 1));

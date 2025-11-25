@@ -18,7 +18,7 @@ public class ExitCommand extends AbstractCommand {
      * The exception itself, not its message, is used to signal termination.
      */
     public ExitSignal() {
-      super("EXIT-SIGNAL"); // tests expect no user-facing text
+      super("EXIT-SIGNAL");
     }
   }
 

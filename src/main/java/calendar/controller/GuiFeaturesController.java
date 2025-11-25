@@ -81,11 +81,11 @@ public class GuiFeaturesController implements Ifeatures {
     List<String> names = manager.listCalendars();
 
     if (names.isEmpty()) {
-      // Build and execute create calendar command
+
       String cmd = commandAdapter.buildCreateCalendarCommand("Default", "America/New_York");
       executeCommand(cmd);
 
-      // Build and execute use calendar command
+
       String useCmd = commandAdapter.buildUseCalendarCommand("Default");
       executeCommand(useCmd);
 
@@ -114,35 +114,31 @@ public class GuiFeaturesController implements Ifeatures {
    */
   private void executeCommand(String commandString) {
     try {
-      // Tokenize the command string
+
       List<String> tokens = CommandUtils.tokenize(commandString);
 
-      // Parse into Command object using existing factory
+
       Command command = CommandFactory.parseCommand(tokens);
 
-      // Execute against model
+
       command.execute(manager);
 
     } catch (ExitCommand.ExitSignal exit) {
-      // Ignore exit in GUI mode
 
+      //no-op
     } catch (Exception e) {
       throw new IllegalStateException("Command execution failed: " + e.getMessage(), e);
     }
   }
 
-  // ============================================================
-  // Calendar Operations
-  // ============================================================
-
   @Override
   public void createCalendar(String name, String timezone) {
     try {
-      // Build command string using adapter
+
       String cmd = commandAdapter.buildCreateCalendarCommand(name, timezone);
       executeCommand(cmd);
 
-      // Switch to new calendar
+
       String useCmd = commandAdapter.buildUseCalendarCommand(name);
       executeCommand(useCmd);
 
@@ -155,7 +151,7 @@ public class GuiFeaturesController implements Ifeatures {
   @Override
   public void useCalendar(String calendarName) {
     try {
-      // Build command string using adapter
+
       String cmd = commandAdapter.buildUseCalendarCommand(calendarName);
       executeCommand(cmd);
 
@@ -175,20 +171,16 @@ public class GuiFeaturesController implements Ifeatures {
     return currentCalendarName;
   }
 
-  // ============================================================
-  // Event Creation
-  // ============================================================
-
   @Override
   public void createSingleEvent(String subject, ZonedDateTime start, ZonedDateTime end,
                                 String description, String location, EventStatus status) {
     try {
-      // Build command string via adapter
+
       String cmd = commandAdapter.buildCreateSingleEventCommand(
           subject, start, end, description, location, status
       );
 
-      // Execute through CLI pipeline
+
       executeCommand(cmd);
     } catch (Exception e) {
       throw new IllegalStateException("Failed to create event: " + e.getMessage());
@@ -201,33 +193,29 @@ public class GuiFeaturesController implements Ifeatures {
                                    String weekdayPattern, Integer occurrences,
                                    LocalDate endDate) {
     try {
-      // Build command string via adapter
+
       String cmd = commandAdapter.buildCreateRecurringEventCommand(
           subject, start, end, description, location, status,
           weekdayPattern, occurrences, endDate
       );
 
-      // Execute through CLI pipeline
+
       executeCommand(cmd);
     } catch (Exception e) {
       throw new IllegalStateException("Failed to create recurring event: " + e.getMessage(), e);
     }
   }
 
-  // ============================================================
-  // Event Editing
-  // ============================================================
-
   @Override
   public void editSingleEvent(String subject, ZonedDateTime start, ZonedDateTime end,
                               String property, Object newValue) {
     try {
-      // Build command string via adapter
+
       String cmd = commandAdapter.buildEditSingleEventCommand(
           subject, start, end, property, newValue
       );
 
-      // Execute through CLI pipeline
+
       executeCommand(cmd);
     } catch (Exception e) {
       throw new IllegalStateException("Failed to edit event: " + e.getMessage(), e);
@@ -238,12 +226,12 @@ public class GuiFeaturesController implements Ifeatures {
   public void editSeriesFromThisOnward(String subject, ZonedDateTime start, ZonedDateTime end,
                                        String property, Object newValue) {
     try {
-      // Build command string via adapter
+
       String cmd = commandAdapter.buildEditSeriesFromThisOnwardCommand(
           subject, start, end, property, newValue
       );
 
-      // Execute through CLI pipeline
+
       executeCommand(cmd);
     } catch (Exception e) {
       throw new IllegalStateException("Failed to edit series: " + e.getMessage(), e);
@@ -254,36 +242,26 @@ public class GuiFeaturesController implements Ifeatures {
   public void editEntireSeries(String subject, ZonedDateTime start, ZonedDateTime end,
                                String property, Object newValue) {
     try {
-      // Build command string via adapter
+
       String cmd = commandAdapter.buildEditEntireSeriesCommand(
           subject, start, end, property, newValue
       );
 
-      // Execute through CLI pipeline
+
       executeCommand(cmd);
     } catch (Exception e) {
       throw new IllegalStateException("Failed to edit entire series: " + e.getMessage(), e);
     }
   }
 
-  // ============================================================
-  // Queries (Direct Model Access for Read-Only)
-  // ============================================================
-
   @Override
   public List<Event> getEventsOn(LocalDate date) {
     try {
-      // Direct model access for queries (read-only operation)
-      // No need to go through command pipeline for queries
       return manager.getActiveCalendar().queryEventsOn(date);
     } catch (Exception e) {
       throw new IllegalStateException("Failed to load events: " + e.getMessage(), e);
     }
   }
-
-  // ============================================================
-  // Navigation (View-only operations)
-  // ============================================================
 
   @Override
   public void navigateToMonth(YearMonth month) {

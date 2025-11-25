@@ -127,7 +127,6 @@ public class EditEventCommand extends AbstractCommand {
 
 
     } else if (scope.equals("series")) {
-      // No end time provided → pass null to indicate “match by subject + start only”
       EventKey key = new EventKey(subject, start, null);
       model.editSeries(key, property, newValue, EditMode.ENTIRE_SERIES);
       System.out.println(

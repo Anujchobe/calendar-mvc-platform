@@ -64,9 +64,7 @@ public final class ParseUtils {
       try {
         return LocalDateTime.parse(norm, f).atZone(EST);
       } catch (Exception ignore) {
-        // Checkstyle Fix: The exception is intentionally ignored here because
-        // the code is inside a loop that attempts multiple parsing patterns.
-        // Failure simply means moving on to the next pattern.
+        //continue
       }
     }
     return LocalDateTime.parse(norm).atZone(EST);
