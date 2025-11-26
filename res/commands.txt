@@ -1,0 +1,16 @@
+create calendar --name Work --timezone America/New_York
+create calendar --name Personal --timezone Asia/Kolkata
+create calendar --name Travel --timezone Europe/Paris
+use calendar --name Work
+create event "Team Meeting" from 2025-11-10T10:00 to 2025-11-10T11:00 description "Weekly sync" location Zoom status PUBLIC
+create event "Hackathon" on 2025-11-15 description "Annual event" location HQ status PRIVATE
+create event "Yoga Class" on 2025-11-11 repeats MTWRF for 3 description "Morning yoga" location Gym
+edit event "Team Meeting" from 2025-11-10T10:00 to 2025-11-10T11:00 with location "Google Meet"
+print events on 2025-11-10
+print events from 2025-11-09T00:00 to 2025-11-16T23:59
+show status on 2025-11-10T10:30
+show status on 2025-11-10T14:00
+copy event "Team Meeting" on 2025-11-10T10:00 --target Personal to 2025-11-12T10:00
+export calendar work_calendar.csv
+export calendar personal_calendar.ical
+exit

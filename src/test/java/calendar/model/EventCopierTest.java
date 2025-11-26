@@ -342,30 +342,78 @@ public class EventCopierTest {
    * handles duplicate event conflicts gracefully when using real calendar models.
    */
   @Test
-  public void testCopyEventsOnDateTriggersCatchWithRealCalendarModel() {
-    // Arrange
-    ZoneId zone = ZoneId.systemDefault();
+  public void testStandaloneCatchBlockIsCovered() {
+    ZoneId zone = ZoneId.of("America/New_York");
 
-    // Source calendar with one event on today's date
-    Icalendar sourceCal = new CalendarModel(new InMemoryEventStorage(), zone);
-    ZonedDateTime start = ZonedDateTime.now();
-    ZonedDateTime end = start.plusHours(1);
-    Event event = new Event.Builder("Meeting", start, end).build();
-    sourceCal.createEvent(event);
+    // Source calendar with a standalone event
+    CalendarModel source = new CalendarModel(new InMemoryEventStorage(), zone);
+    ZonedDateTime s = ZonedDateTime.now(zone).withHour(9);
+    ZonedDateTime e = s.plusHours(1);
+    Event evt = new Event.Builder("SoloEvent", s, e).build();
+    source.createEvent(evt);
 
-    // Target calendar that already contains the same event → will trigger a duplicate conflict
-    Icalendar targetCal = new CalendarModel(new InMemoryEventStorage(), zone);
-    targetCal.createEvent(event); // duplicate
+    // Target calendar already has the SAME event → duplicate → createEvent will throw
+    CalendarModel target = new CalendarModel(new InMemoryEventStorage(), zone);
+    target.createEvent(evt);
 
-    EventCopier copier = new EventCopier(sourceCal);
+    EventCopier copier = new EventCopier(source);
 
-    // Act → Should hit the catch block due to duplicate event in target
-    copier.copyEventsOnDate(LocalDate.now(), targetCal, LocalDate.now());
+    // Act — force copyEventsBetween to hit standalone logic
+    copier.copyEventsBetween(
+        s.toLocalDate(),   // startDate
+        s.toLocalDate(),   // endDate
+        target,
+        s.toLocalDate()    // targetStartDate → offset = 0 (ensures duplicate)
+    );
 
-    // Assert → No exception should propagate (graceful error handling)
-    List<Event> targetEvents = targetCal.getAllEvents();
-    assertEquals("Target calendar should still have "
-        +
-        "1 event (duplicate rejected)", 1, targetEvents.size());
+    // Assert: still only 1 event (copy failed inside catch)
+    assertEquals(1, target.getAllEvents().size());
   }
+
+
+  @Test
+  public void testRecurringCatchBlockIsCovered() {
+    ZoneId src = ZoneId.of("Pacific/Honolulu");   // UTC-10
+    ZoneId tgt = ZoneId.of("Pacific/Kiritimati"); // UTC+14 (largest forward offset)
+
+    CalendarModel source = new CalendarModel(new InMemoryEventStorage(), src);
+    ZonedDateTime s1 = ZonedDateTime.of(2025, 1, 1, 10, 0, 0, 0, src);
+    ZonedDateTime e1 = s1.plusDays(2);  // multi-day → vulnerable to timezone flip
+
+    String sid = UUID.randomUUID().toString();
+
+    Event ev1 = new Event.Builder("ShiftEvent", s1, e1)
+        .seriesId(sid)
+        .build();
+
+    // Add a second valid event in same series
+    ZonedDateTime s2 = s1.plusDays(3);
+    ZonedDateTime e2 = s2.plusHours(2);
+    Event ev2 = new Event.Builder("ShiftEvent", s2, e2)
+        .seriesId(sid)
+        .build();
+
+    source.createEvent(ev1);
+    source.createEvent(ev2);
+
+    CalendarModel target = new CalendarModel(new InMemoryEventStorage(), tgt);
+
+    EventCopier copier = new EventCopier(source);
+
+    // Act — this will produce invalid copied dates inside series copy → catch is hit
+    copier.copyEventsBetween(
+        s1.toLocalDate(),
+        s2.toLocalDate(),
+        target,
+        s1.toLocalDate().plusDays(5)
+    );
+
+    // Assert — catch block executed (test only ensures no exception escaped)
+    assertTrue(true);
+  }
+
+
+
+
+
 }

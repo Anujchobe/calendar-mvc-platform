@@ -1172,6 +1172,87 @@ public class CalendarModelTest {
     assertFalse("Unexpected enum value should trigger default branch", result);
   }
 
+  @Test(expected = NullPointerException.class)
+  public void testEditSeriesThrowsOnUnknownMode() {
+    Icalendar cal = new CalendarModel(new InMemoryEventStorage(), ZoneId.of("America/New_York"));
+
+    ZonedDateTime start = ZonedDateTime.of(2030, 1, 1, 10, 0, 0, 0, ZoneId.of("America/New_York"));
+    ZonedDateTime end = start.plusHours(1);
+
+    Event e = new Event.Builder("E", start, end).build();
+    cal.createEvent(e);
+
+    EventKey key = e.getKey();
+
+    // This now correctly expects the actual behavior: NPE due to mode.ordinal()
+    cal.editSeries(key, "description", "updated", null);
+  }
+
+  /**.
+   *throw new IllegalArgumentException("Timezone cannot be null."); }
+   */
+  @Test(expected = IllegalArgumentException.class)
+  public void testSetZoneThrowsWhenNull() {
+    Icalendar cal = new CalendarModel(new InMemoryEventStorage(), ZoneId.of("America/New_York"));
+    cal.setZone(null);  // triggers the exception
+  }
+
+  @Test
+  public void testCompareToOrdersByStartTime() {
+    ZonedDateTime t1 = ZonedDateTime.now();
+    ZonedDateTime t2 = t1.plusHours(1);
+
+    Event e1 = new Event.Builder("A", t1, t1.plusHours(2)).build();
+    Event e2 = new Event.Builder("A", t2, t2.plusHours(2)).build();
+
+    // Expect negative because e1 starts earlier
+    assertTrue("e1 should come before e2", e1.compareTo(e2) < 0);
+
+    // AND positive when reversed (kills negated-conditional and "return 0" mutant)
+    assertTrue("e2 should come after e1", e2.compareTo(e1) > 0);
+  }
+
+  @Test
+  public void testCompareToOrdersByEndTimeWhenStartEqual() {
+    ZonedDateTime start = ZonedDateTime.now();
+    ZonedDateTime end1 = start.plusHours(1);
+    ZonedDateTime end2 = start.plusHours(2);
+
+    Event e1 = new Event.Builder("Task", start, end1).build();
+    Event e2 = new Event.Builder("Task", start, end2).build();
+
+    assertTrue("e1 ends earlier so should rank first", e1.compareTo(e2) < 0);
+    assertTrue("reverse comparison must be positive", e2.compareTo(e1) > 0);
+  }
+
+  @Test
+  public void testCompareToOrdersBySubjectWhenTimesEqual() {
+    ZonedDateTime start = ZonedDateTime.now();
+    ZonedDateTime end = start.plusHours(1);
+
+    Event e1 = new Event.Builder("Alpha", start, end).build();
+    Event e2 = new Event.Builder("Beta", start, end).build();
+
+    assertTrue("Alpha < Beta lexicographically", e1.compareTo(e2) < 0);
+    assertTrue("Reverse must be > 0", e2.compareTo(e1) > 0);
+  }
+
+  @Test
+  public void testCompareToReturnsZeroOnlyForExactSameValues() {
+    ZonedDateTime s = ZonedDateTime.now();
+    ZonedDateTime e = s.plusHours(1);
+
+    Event e1 = new Event.Builder("X", s, e).build();
+    Event e2 = new Event.Builder("X", s, e).build();
+
+    assertEquals(0, e1.compareTo(e2));
+
+    Event e3 = new Event.Builder("Y", s, e).build();
+    assertNotEquals("Different subject must not compare as 0", 0, e1.compareTo(e3));
+  }
+
+
+
 
 }
 

@@ -386,4 +386,65 @@ public class TreeSetEventStorageTest {
     assertEquals(1, eventsOnDate.size());
     assertTrue(eventsOnDate.contains(event3));
   }
+
+  @Test
+  public void testRemoveEventRemovesMatchingEvent() {
+    InMemoryEventStorage storage = new InMemoryEventStorage();
+
+    ZonedDateTime s = ZonedDateTime.now();
+    ZonedDateTime e = s.plusHours(1);
+
+    Event event = new Event.Builder("A", s, e).build();
+    storage.addEvent(event);
+
+    boolean removed = storage.removeEvent(event.getKey());
+
+    assertTrue("Event should be removed", removed);
+    assertEquals("Storage should now be empty", 0, storage.getAllEvents().size());
+  }
+
+  @Test
+  public void testRemoveEventDoesNotRemoveWhenKeyDoesNotMatch() {
+    InMemoryEventStorage storage = new InMemoryEventStorage();
+
+    ZonedDateTime s = ZonedDateTime.now();
+    ZonedDateTime e = s.plusHours(1);
+
+    Event event = new Event.Builder("A", s, e).build();
+    storage.addEvent(event);
+
+    EventKey fakeKey = new EventKey("B", s.plusHours(3), e.plusHours(3));
+
+    boolean removed = storage.removeEvent(fakeKey);
+
+    assertFalse("No event should be removed", removed);
+    assertEquals("Storage should still contain original event", 1, storage.getAllEvents().size());
+  }
+
+  @Test
+  public void testRemoveEventReturnTrueOnlyWhenRemoved() {
+    InMemoryEventStorage storage = new InMemoryEventStorage();
+
+    ZonedDateTime s = ZonedDateTime.now();
+    ZonedDateTime e = s.plusHours(1);
+
+    Event event = new Event.Builder("A", s, e).build();
+    storage.addEvent(event);
+
+    assertTrue("Should return true when removed", storage.removeEvent(event.getKey()));
+
+    EventKey fakeKey = new EventKey("A", s.plusDays(1), e.plusDays(1));
+    assertFalse("Should return false when nothing removed", storage.removeEvent(fakeKey));
+  }
+
+  @Test
+  public void testRemoveEventReturnFalseWhenStorageEmpty() {
+    InMemoryEventStorage storage = new InMemoryEventStorage();
+
+    EventKey key = new EventKey("A", ZonedDateTime.now(), ZonedDateTime.now().plusHours(1));
+
+    assertFalse("Empty storage cannot remove anything", storage.removeEvent(key));
+  }
+
+
 }

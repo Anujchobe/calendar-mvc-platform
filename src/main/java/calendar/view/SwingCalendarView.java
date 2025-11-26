@@ -317,10 +317,24 @@ public class SwingCalendarView extends JFrame implements Icalendarview {
     }
 
     for (Event event : events) {
-      String display = String.format("%s (%s - %s)",
+      String display = String.format(
+          "<html>"
+              + "<b>%s</b><br>"
+              + "%s – %s<br>"
+              + "%s<br>"
+              + "📍 %s<br>"
+              + "<span style='color:gray;'>%s</span>"
+              + "</html>",
           event.getSubject(),
           event.getStart().format(TIME_FORMAT),
-          event.getEnd().format(TIME_FORMAT));
+          event.getEnd().format(TIME_FORMAT),
+          event.getDescription(),
+          event.getLocation(),
+          event.getStatus().name()
+      );
+
+
+
       eventListModel.addElement(display);
     }
   }

@@ -1,0 +1,38 @@
+create calendar --name TestCal --timezone America/New_York
+use calendar --name TestCal
+create event "Valid Event" from 2025-11-15T09:00 to 2025-11-15T10:00
+create event MissingQuotes from 2025-11-15T11:00 to 2025-11-15T12:00
+create event "Missing From" 2025-11-15T09:00 to 2025-11-15T10:00
+create event "End Before Start" from 2025-11-15T10:00 to 2025-11-15T09:00
+create event "Invalid Timezone" from 2025-11-15T09:00 to 2025-11-15T10:00 timezone InvalidZone
+create event "Wrong Date Format" from 15-11-2025T09:00 to 2025-11-15T10:00
+create event "Blank Subject" from 2025-11-15T09:00 to 2025-11-15T10:00
+create calendar Work America/New_York
+use calendar TestCal
+edit event "NonExistent" from 2025-11-15T09:00 to 2025-11-15T10:00 with location "Zoom"
+edit calendar --name NonExistentCal --property timezone America/Los_Angeles
+copy event "Valid Event" 2025-11-15T09:00 --target TestCal to 2025-11-16T09:00
+copy events between 2025-11-15 --target TestCal to 2025-11-20
+print events 2025-11-15
+show busy on 2025-11-15T09:00
+export calendar
+create event "Missing End Time" from 2025-11-15T09:00
+create event on 2025-11-20
+delete event "Valid Event" from 2025-11-15T09:00
+unknown command syntax
+create calendar --name "Duplicate" --timezone America/New_York
+create calendar --name "Duplicate" --timezone America/Chicago
+use calendar --name
+edit event from 2025-11-15T09:00 with location "Room"
+create event "Invalid Recurrence" on 2025-11-20 repeats XYZ for 5
+create event "Missing For/Until" on 2025-11-20 repeats MW
+copy event --target TestCal to 2025-11-16T09:00
+print events from 2025-11-15T09:00
+show status 2025-11-15T09:00
+edit series "Valid Event" from 2025-11-15T09:00 with invalidProperty "value"
+export calendar invalid_file.txt
+create calendar --timezone America/New_York
+edit calendar --property timezone
+use calendar
+create event "" from 2025-11-15T09:00 to 2025-11-15T10:00
+exit
