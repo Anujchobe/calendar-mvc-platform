@@ -125,7 +125,9 @@ User and permission management
 # Author
 
 Anuj K. Chobe
+
 Graduate Student, MS in Computer Science
+
 Khoury College of Computer Sciences, Northeastern University
 
 This project reflects my approach to building maintainable, scalable, and well-architected software systems, with a strong focus on correctness and design quality.
