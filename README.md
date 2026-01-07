@@ -1,114 +1,138 @@
 # Overview
 
-In this iteration of this project, you will build a view
-for the calendar application, featuring a graphical user interface.
-This will allow a user to interactively create,edit, and view events in
-a digital calendar. The result of this iteration will be a calendar that
-a user can interact with in a text-based interface, a GUI, as well as use scripting in headless mode.
+The Calendar MVC Platform supports the creation, management, and querying of calendar events, including both single-instance and recurring events. The system is designed around strong architectural principles rather than UI-first development, making it suitable for extension into CLI, GUI, or service-based interfaces.
 
-# 1 Graphical View
+# Architecture
 
-## 1.1 General Constraints
+The system follows a strict Model–View–Controller (MVC) architecture.
 
-1. You must use the Java Swing library to build the user interface of this application. To this end, you can use the examples discussed in the view module and any class in the official Java Swing library. You are not allowed to use any component or class that is not part of the JDK. 
+## Model
 
-2. The GUI should, at a minimum, support a *month view* of a calendar. A month view shows all the days of the current month. A user can navigate to another month in the future or in the past. You are free to add more views (e.g., weekly view, days view, etc.).
+Owns all calendar and event data
+Responsible for:
+-Event creation and storage
+-Recurring event expansion
+-Timezone-aware event handling
+-Querying events over date ranges
+Completely independent of UI or command logic
 
-3. The GUI must expose features listed and described in the next section.
+## Controller
 
-4. The GUI should have support for multiple calendars in any timezone chosen by the user.
+Acts as the orchestration layer
+Parses and validates user commands
+Converts raw input into model operations
+Computes higher-level analytics and summaries
+Ensures business logic does not leak into the model or view
 
-5. You are expected to handle invalid user input via the GUI gracefully. Graceful error handling means that you must detect the cause of the error and inform the user with a useful message that does not leak implementation details but lets the user know how to fix the error.
+## View
 
-6. The layout of the UI should be reasonable. Things should be in proper proportion, and laid out in a reasonable manner. **Buttons/text fields/labels that are oversized, or haphazardly arranged, even if functional, will result in a point deduction.**
+Responsible only for presentation
+Supports multiple output formats (text-based, CLI-style output)
+Receives pre-processed data from the controller
+This separation allows:
+-Multiple views over the same model
+-Easy replacement of UI layers
+-Independent testing of each layer
 
-7. Each user interaction or user input must be reasonably user-friendly  (e.g. making the user type something when a less error-prone method is  possible is not good UI design). We do not expect snazzy, sophisticated  user-friendly programs. Our standard is: can a user unfamiliar with your code and technical documentation operate the program correctly **without reading your code and technical documentation?**
+# Features
 
-8. Keep in mind that this is a graphical user interface for your program.  It is not a graphical way to use the same interaction as the text mode. The expectations of the user, and what the user is expected to enter, are not the same as when specifying script commands!
+## Event Management
 
-## 1.2 Expected Feature Set
+Create single (one-time) events
+Create recurring events (daily, weekly, custom ranges)
+Edit existing events and entire event series
+Prevent invalid or conflicting event creation
 
-The following features must be usable via your graphical user interface.
+## Time & Date Handling
 
-1. A user should be able to create a new calendar for a particular timezone.
+Timezone-aware event representation
+Accurate event expansion across date ranges
+Clear distinction between logical event time and display time
 
-2. A user should be able to select a calendar and create, edit, view events for the selected calendar.
+## Command-Based Interaction
 
-3. A user should know which calendar they are on when interacting with the GUI. The way you distinguish a calendar is upto you. One example would be to color code the different calendars.
+Text-based command parsing
+Commands mapped cleanly to controller actions
+Robust validation and error handling
+Designed to scale into CLI or GUI frontends
 
-4. A user should not be forced to create a new calendar. Instead, the GUI should allow a user to work with a default calendar in the user's current timezone based on their system setting.
+## Analytics & Queries
 
-5. A user should be able to select a specific day of a month and view all events scheduled on that day in the calendar's timezone.
+Query events within a given date range
+Compute calendar summaries and statistics
+Designed so analytics logic lives in the controller (not the model)
 
-6. A user should be able to create a new event on a selected day of a month. The event can be a single or recurring event. For recurring events, a user should be able to specify the weekdays on which the event will repeat and the frequency in terms of number of occurrences or until an end date.
+## Testing & Correctness
 
-7. A user should be able to select a specific day of a month and edit events.
+Extensive unit testing
+Emphasis on edge cases (overlaps, invalid ranges, recurrence boundaries)
+Architecture designed for high test coverage and maintainability
 
-The user should be able to identify a single event and edit it. The user should also be able to identify multiple events with the same name, possibly from a user-specific point in time, and edit them together.
+# Design Principles Applied
 
+This project intentionally applies core object-oriented and software design principles:
+## Single Responsibility Principle (SRP)
+Each class has one clear responsibility.
+## Open/Closed Principle
+New commands, views, or analytics can be added without modifying existing logic.
+## Dependency Inversion
+Interfaces abstract storage, exporters, and views.
+## Immutability Where Appropriate
+Event objects favor immutability to avoid state corruption.
+## Composition Over Inheritance
+Used extensively for command handling and event behavior.
 
-## 1.3 Design Considerations
+# Technologies & Tools
 
-Carefully design the interaction between a view and a controller,
-and formalize the interactions with view and controller interfaces.
-You may design a single controller that manages the program in
-interactive, headless and GUI modes. Different controllers for different views are also possible if the views are very different from each other.
-However, be mindful of the MVC principles and separation between  the model, view and controller. When designing, always ask: "can I change one part with no/minimal changes to the others?"
+Language: Java
 
-## 1.4 Testing
+Build & Testing: JUnit
 
-Think carefully about which parts of the program require testing. For example, you are not expected to test whether a particular button click produces the desired result. In that sense, testing the actual GUI is optional. However, you should test whether the controller does what it is supposed to in reaction to this happening.
+Architecture: MVC
 
-# 2 Program Execution
+Design Patterns: Command, Adapter, Builder, Strategy
 
-## 2.1 Creating a JAR File
+Version Control: Git & GitHub
 
-A user should be able to run your application using a JAR file. To create a JAR file run the command ./gradlew jar. This will create a JAR file in the build/libs directory. You can run the jar using the command java -jar build/libs/JARNAME.jar. You can provide arguments after the jar file path.
+# Incremental Development
 
-You should assume that the user will run your program from this project's root. You must ensure that file paths that your program relies on are platform independent.
+This project was built iteratively across multiple assignments, closely mirroring how real-world systems evolve:
 
-## 2.2 Command-line arguments
+Initial skeleton and interfaces
+Core event modeling
+Command parsing and validation
+Recurrence handling
+Analytics and querying
+Testing and refactoring for extensibility
 
-Your program (from IntelliJ or the JAR file) should accept command-line inputs. Three command-line inputs are valid:
+This approach highlights:
 
-* `java -jar JARNAME.jar --mode headless path-of-script-file`: when invoked in this manner the program should open the script file, execute it and then exit. Invalid commands should be handled gracefully with appropriate error messages. This is how the program worked in the previous iteration.
+disciplined design evolution
+ability to refactor safely
+long-term architectural thinking
 
-* `java -jar JARNAME.jar --mode interactive`: when invoked in this manner the program should open in an interactive text mode, allowing the user to type the script and execute it one line at a time. This is how the program worked in the previous iteration.
+# Future Extensions
 
-* `java -jar JARNAME.jar`: when invoked in this manner the program should open the graphical user interface. This is what will happen if you simply double-click on the jar file.
+The architecture intentionally supports future growth, including:
 
-Any other command-line arguments are invalid: in these cases the program should display an error message suitably and quit.
+GUI frontend (Swing / Web)
+REST API exposure
+Multi-calendar support
+Persistent storage (database-backed)
+Import/export (ICS format)
+User and permission management
 
-# 3 What to submit
+# Author
 
-- Submit a res/ folder with the following:
-  - A screenshot showing your GUI. 
-  - A `Misc.md` file with the following information:
-    - `A list of changes to the design of your program, along with a brief justification of each. **Describing changes only in paragraph form will result in a point deduction.**
-    - Which features work and which do not. 
-    - Anything else you need us to know when we grade.
-  - A txt file, commands.txt, with the list of valid commands.
-  - A txt file, invalid.txt with a list of commands where at least one command is invalid.
-- A USEME.md file that contains:
-  - Instructions to run your program in different modes using examples.
-  - a bullet-point list of how to use your GUI to use each operation supported by your program. Screenshots would be helpful, but not necessary.
-- The main method must be in the class 'src/main/java/CalendarRunner.java'.
-- Complete the [anonymous peer evaluation survey](https://forms.gle/11qoosf7ukmVFWuT9). You do not need to take the survey if you are working alone.
+Anuj K. Chobe
+Graduate Student, MS in Computer Science
+Khoury College of Computer Sciences, Northeastern University
 
-# Grading Criteria
+This project reflects my approach to building maintainable, scalable, and well-architected software systems, with a strong focus on correctness and design quality.
 
-1. The completeness, layout, and behavior of your GUI.
+# License
 
-2. Whether your design aligns with MVC and SOLID principles.
+This project is for educational and portfolio purposes.
+Reuse or extension should respect academic integrity policies and applicable licenses.
 
-3. Whether you have addressed issues in the previous version.
-
-4. Well-structured and clean code with relevant documentation.
-
-5. Avoid code smells wherever relevant.
-
-6. Completeness and correctness of your tests as evidenced by running them and coverage metrics for the controller and model.
-
-7. Proper access modifiers.
-
-8. Expected formatting style.
+***
